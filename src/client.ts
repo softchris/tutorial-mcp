@@ -13,10 +13,7 @@ class MyClient {
             apiKey: process.env.GITHUB_TOKEN,
         });
 
-        const transport = new StdioClientTransport({
-            command: "node",
-            args: ["../build/index.js"]
-        });
+       
         
         this.client = new Client(
             {
@@ -87,6 +84,7 @@ class MyClient {
     }
 
     async run() {
+        console.log("Asking server for available tools");
         const toolsResult = await this.client.listTools();
         const tools = toolsResult.tools.map((tool) => {
             return this.openAiToolAdapter({
@@ -103,6 +101,7 @@ class MyClient {
             },
         ];
 
+        console.log("Querying LLM: ", messages[0].content);
         let response = this.openai.chat.completions.create({
             model: "gpt-4o-mini",
             max_tokens: 1000,
@@ -116,6 +115,7 @@ class MyClient {
         (await response).choices.map(async (choice: { message: any; }) => {
           const message = choice.message;
           if (message.tool_calls) {
+              console.log("Making tool call")
               await this.callTools(message.tool_calls, results);
           }
         });
@@ -123,10 +123,10 @@ class MyClient {
     
 }
 
-
-
-
-
-
-
 let client = new MyClient();
+ const transport = new StdioClientTransport({
+            command: "node",
+            args: ["./build/index.js"]
+        });
+
+client.connectToServer(transport);
